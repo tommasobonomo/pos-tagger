@@ -1,9 +1,13 @@
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
 data_dir = Path("data")
 extension = ".txt"
+
+# Disable tokenizers parallelism -- impacts torch dataloaders
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class SplitType(str, Enum):
