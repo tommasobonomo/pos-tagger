@@ -10,25 +10,29 @@ class PosModel(pl.LightningModule):
     def __init__(self, config: Config) -> None:
         super().__init__()
 
-        self.learning_rate = config.learning_rate
+        self.learning_rate = config.model.learning_rate
 
         # Load pretrained transformer encoder with Huggingface
-        self.transformer_encoder = AutoModel.from_pretrained(config.transformer_model)
+        self.transformer_encoder = AutoModel.from_pretrained(
+            config.model.transformer_model
+        )
 
         # Define feedforward layer to classify tokens
         self.classification_layer = torch.nn.Linear(
             in_features=self.transformer_encoder.config.hidden_size,
             out_features=len(label2idx),
-            bias=config.use_bias,
+            bias=config.model.use_bias,
         )
 
         self.loss_fn = torch.nn.CrossEntropyLoss(ignore_index=-100, reduction="mean")
 
+        self.save_hyperparameters()
+
     def configure_optimizers(self):
         return AdamW(self.parameters(), lr=self.learning_rate)
 
-    def forward(self, batch: Batch) -> list[torch.Tensor]:  # type: ignore
-        _, sentences, _ = batch
+    def forward(self, batch: Batch) -> list[tuple[torch.Tensor, torch.Tensor]]:  # type: ignore
+        indexes, sentences, _ = batch
         # Use offset mapping to return predicted labels with the same length of un-tokenized input sentences
         offset_mapping = sentences.pop("offset_mapping")
         # Run sentences through selected transformer encoder.
@@ -40,9 +44,16 @@ class PosModel(pl.LightningModule):
         predicted_tags = torch.argmax(predicted_logits, dim=-1)
 
         predicted_int_tags = []
-        for all_tags, token_offset in zip(predicted_tags, offset_mapping):
+        for sample_index, all_tags, token_offset in zip(
+            indexes, predicted_tags, offset_mapping
+        ):
             idx_original_tokens = (token_offset[:, 0] == 0) & (token_offset[:, 1] != 0)
-            predicted_int_tags.append(all_tags[idx_original_tokens])
+            predicted_int_tags.append(
+                (
+                    sample_index.cpu().tolist(),
+                    all_tags[idx_original_tokens].cpu().tolist(),
+                )
+            )
 
         return predicted_int_tags
 
@@ -68,12 +79,12 @@ class PosModel(pl.LightningModule):
         loss = self.loss_fn(predicted_logits, labels)
         return loss
 
-    def training_step(self, batch: Batch) -> torch.Tensor:  # type: ignore
+    def training_step(self, batch: Batch, *args, **kwargs) -> torch.Tensor:  # type: ignore
         loss = self.step(batch)
         self.log("loss", loss)
         return loss
 
-    def validation_step(self, batch: Batch) -> torch.Tensor:  # type: ignore
+    def validation_step(self, batch: Batch, *args, **kwargs) -> torch.Tensor:  # type: ignore
         loss = self.step(batch)
         self.log("val_loss", loss, prog_bar=True)
         return loss

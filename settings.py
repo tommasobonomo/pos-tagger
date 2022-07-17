@@ -17,7 +17,27 @@ class SplitType(str, Enum):
 
 
 @dataclass
+class ModelConfig:
+    # Model configs
+    transformer_model: str = "distilbert-base-uncased"
+    learning_rate: float = 1e-5
+    batch_size: int = 32
+    use_bias: bool = False
+    model_dir: Path = Path("models")
+    model_name: str | None = None
+
+
+@dataclass
+class TrainerConfig:
+    # Trainer config
+    accelerator: str = "auto"
+    fast_dev_run: bool = False
+    max_epochs: int = 10
+
+
+@dataclass
 class Config:
+    # Data configs
     split_paths: dict[SplitType, Path] = field(
         default_factory=lambda: {
             SplitType.train: data_dir / f"{SplitType.train}{extension}",
@@ -25,7 +45,10 @@ class Config:
             SplitType.test: data_dir / f"{SplitType.test}{extension}",
         }
     )
-    transformer_model: str = "distilbert-base-uncased"
-    learning_rate: float = 1e-5
-    batch_size: int = 32
-    use_bias: bool = False
+    model: ModelConfig = ModelConfig()
+    trainer: TrainerConfig = TrainerConfig()
+    # Script configs
+    fit: bool = True
+    evaluate: bool = True
+    num_workers: int = 4
+    wandb_dir: Path = Path("wandb")

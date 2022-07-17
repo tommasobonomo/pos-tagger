@@ -42,7 +42,7 @@ class PosDataset(Dataset):
         super().__init__()
         self.split = split
 
-        tokenizer = AutoTokenizer.from_pretrained(config.transformer_model)
+        tokenizer = AutoTokenizer.from_pretrained(config.model.transformer_model)
         self.tokenizer_fn = partial(
             tokenizer,
             is_split_into_words=True,
