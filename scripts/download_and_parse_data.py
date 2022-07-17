@@ -3,12 +3,12 @@ from pathlib import Path
 
 import requests
 
+from settings import data_dir, extension
+
 logging.basicConfig(level=logging.INFO)
 console_logger = logging.getLogger("download_and_parse_data")
 
-DATA_DIRECTORY = Path("data")
 SPLITS = ["train", "dev", "test"]
-EXTENSION = ".txt"
 
 Word = str
 Label = str
@@ -60,7 +60,7 @@ def save_sentences_to_file(sentences: list[Sentence], output_path: Path):
 
 def main():
     # Define file paths
-    file_paths = [DATA_DIRECTORY / f"{split}{EXTENSION}" for split in SPLITS]
+    file_paths = [data_dir / f"{split}{extension}" for split in SPLITS]
 
     # Check if data directory and splits have already been retrieved
     if all(file_path.exists() for file_path in file_paths):
@@ -68,10 +68,10 @@ def main():
         return
 
     # There are some files missing, redownload all of them
-    DATA_DIRECTORY.mkdir(exist_ok=True)
+    data_dir.mkdir(exist_ok=True)
     remote_file_urls = get_remote_files_urls()
     for split, url in remote_file_urls:
-        console_logger.info(f"Downloading split {split}...")
+        console_logger.info(f"Downloading {split} split..")
         response = requests.get(url)
 
         # Parse sentences from downloaded file
@@ -79,11 +79,11 @@ def main():
         split_sentences = parse_conllu(response.text)
 
         # Save to given path
-        output_path = DATA_DIRECTORY / f"{split}{EXTENSION}"
-        console_logger.info(f"Saving split {split} to path {str(output_path)}...")
+        output_path = data_dir / f"{split}{extension}"
+        console_logger.info(f"Saving {split} split to path {str(output_path)}...")
         save_sentences_to_file(split_sentences, output_path)
 
-        console_logger.info(f"Finished downloading split {split}.")
+        console_logger.info(f"Finished downloading {split} split.")
 
     console_logger.info("Finished all splits ✅")
 
