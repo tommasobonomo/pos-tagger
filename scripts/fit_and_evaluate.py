@@ -64,7 +64,7 @@ def main(config: Config):
             mode="min",
             save_weights_only=True,
         )
-        early_stopping = EarlyStopping(monitor="val_loss", mode="min")
+        early_stopping = EarlyStopping(monitor="val_loss", mode="min", patience=0)
         trainer = pl.Trainer(
             **config.trainer,  # type: ignore
             callbacks=[checkpoint_callback, early_stopping],

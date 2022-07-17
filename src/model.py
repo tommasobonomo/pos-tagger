@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import pytorch_lightning as pl
 import torch
 from transformers import AdamW, AutoModel
@@ -31,7 +33,7 @@ class PosModel(pl.LightningModule):
     def configure_optimizers(self):
         return AdamW(self.parameters(), lr=self.learning_rate)
 
-    def forward(self, batch: Batch) -> list[tuple[torch.Tensor, torch.Tensor]]:  # type: ignore
+    def forward(self, batch: Batch) -> List[Tuple[torch.Tensor, torch.Tensor]]:  # type: ignore
         indexes, sentences, _ = batch
         # Use offset mapping to return predicted labels with the same length of un-tokenized input sentences
         offset_mapping = sentences.pop("offset_mapping")

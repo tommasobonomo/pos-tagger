@@ -1,6 +1,7 @@
 import logging
 from functools import partial
 from pathlib import Path
+from typing import List, Tuple
 
 import torch
 from torch.utils.data import Dataset
@@ -13,7 +14,7 @@ console_logger = logging.getLogger("dataset")
 
 
 # Batch is a tuple of (id, tokenized sentence, int label)
-Batch = tuple[torch.Tensor, BatchEncoding, torch.Tensor]
+Batch = Tuple[torch.Tensor, BatchEncoding, torch.Tensor]
 
 label2idx = {
     "ADJ": 0,
@@ -58,7 +59,7 @@ class PosDataset(Dataset):
         self.data = self._read_data_file(data_path)
 
     @staticmethod
-    def _read_data_file(path: Path) -> list[list[tuple[str, str]]]:
+    def _read_data_file(path: Path) -> List[List[Tuple[str, str]]]:
         sentences = []
         sentence = []
         with open(path) as f:

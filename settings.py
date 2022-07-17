@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Dict, Optional
 
 data_dir = Path("data")
 extension = ".txt"
@@ -24,7 +25,7 @@ class ModelConfig:
     batch_size: int = 32
     use_bias: bool = False
     model_dir: Path = Path("models")
-    model_name: str | None = None
+    model_name: Optional[str] = None
 
 
 @dataclass
@@ -38,7 +39,7 @@ class TrainerConfig:
 @dataclass
 class Config:
     # Data configs
-    split_paths: dict[SplitType, Path] = field(
+    split_paths: Dict[SplitType, Path] = field(
         default_factory=lambda: {
             SplitType.train: data_dir / f"{SplitType.train}{extension}",
             SplitType.dev: data_dir / f"{SplitType.dev}{extension}",

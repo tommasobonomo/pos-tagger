@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from typing import List, Tuple
 
 import requests
 
@@ -12,11 +13,11 @@ SPLITS = ["train", "dev", "test"]
 
 Word = str
 Label = str
-Row = tuple[Word, Label]
-Sentence = list[Row]
+Row = Tuple[Word, Label]
+Sentence = List[Row]
 
 
-def get_remote_files_urls() -> tuple[tuple[str, str], tuple[str, str], tuple[str, str]]:
+def get_remote_files_urls() -> Tuple[Tuple[str, str], Tuple[str, str], Tuple[str, str]]:
     BASE_PATH = "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/master/en_ewt-ud-{placeholder}.conllu"
     return (
         ("train", BASE_PATH.format(placeholder="train")),
@@ -25,7 +26,7 @@ def get_remote_files_urls() -> tuple[tuple[str, str], tuple[str, str], tuple[str
     )
 
 
-def parse_conllu(full_text: str) -> list[Sentence]:
+def parse_conllu(full_text: str) -> List[Sentence]:
     lines = full_text.splitlines()
     parsed_sentences = []
     sentence = []
@@ -41,7 +42,7 @@ def parse_conllu(full_text: str) -> list[Sentence]:
             # It's a multi-token word, ignore it and use the tokenized version that follows
             continue
         else:
-            # We need to add the sentence to the list of parsed sentences, only if the sentence is actually something
+            # We need to add the sentence to the List of parsed sentences, only if the sentence is actually something
             if len(sentence) > 0:
                 parsed_sentences.append(sentence)
                 sentence = []
@@ -53,7 +54,7 @@ def parse_conllu(full_text: str) -> list[Sentence]:
     return parsed_sentences
 
 
-def save_sentences_to_file(sentences: list[Sentence], output_path: Path):
+def save_sentences_to_file(sentences: List[Sentence], output_path: Path):
     with open(output_path, "w+") as f:
         for sentence in sentences:
             for word, tag in sentence:
