@@ -30,13 +30,16 @@ def parse_conllu(full_text: str) -> list[Sentence]:
     parsed_sentences = []
     sentence = []
     for line in lines:
+        cells = line.split("\t")
         # CoNLL-U format gives an index to each word, so we care only about lines with a number as the first character
-        if line and line[0].isnumeric():
+        if cells[0].isnumeric():
             # All interesting values are separated by a tab character, so we split on that
-            cells = line.split("\t")
             # We are interested only in the word and the Universal POS tag, which are respectively at columns 1 and 3
             word, pos_label = cells[1], cells[3]
             sentence.append((word, pos_label))
+        elif "-" in cells[0]:
+            # It's a multi-token word, ignore it and use the tokenized version that follows
+            continue
         else:
             # We need to add the sentence to the list of parsed sentences, only if the sentence is actually something
             if len(sentence) > 0:
