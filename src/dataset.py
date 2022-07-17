@@ -34,6 +34,7 @@ label2idx = {
     "VERB": 15,
     "X": 16,
 }
+idx2label = {value: key for key, value in label2idx.items()}
 
 
 class PosDataset(Dataset):
@@ -96,7 +97,7 @@ class PosDataset(Dataset):
             tokenization_result[key] = torch.squeeze(value)
 
         # Build and align final label tensor
-        label_offset = tokenization_result.pop("offset_mapping")
+        label_offset = tokenization_result["offset_mapping"]
         aligned_labels = torch.full((len(label_offset),), -100, dtype=torch.long)
         idx_original_labels = (label_offset[:, 0] == 0) & (label_offset[:, 1] != 0)
 

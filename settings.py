@@ -18,7 +18,6 @@ class SplitType(str, Enum):
 
 @dataclass
 class Config:
-    transformer_model: str = "distilbert-base-uncased"
     split_paths: dict[SplitType, Path] = field(
         default_factory=lambda: {
             SplitType.train: data_dir / f"{SplitType.train}{extension}",
@@ -26,3 +25,7 @@ class Config:
             SplitType.test: data_dir / f"{SplitType.test}{extension}",
         }
     )
+    transformer_model: str = "distilbert-base-uncased"
+    learning_rate: float = 1e-5
+    batch_size: int = 32
+    use_bias: bool = False
