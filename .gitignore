@@ -1,6 +1,7 @@
 ### CUSTOM IGNORES ###
 
 data/
+models/
 outputs/
 wandb/
 

@@ -40,6 +40,7 @@ def main(config: Config):
                 for possible_checkpoint in final_model_dir.iterdir()
                 if possible_checkpoint.suffix == ".ckpt"
             )
+        model = PosModel(config)
 
     else:
         console_logger.info("Started fitting of model...")
@@ -96,9 +97,6 @@ def main(config: Config):
         )
 
         final_model_checkpoint = Path(checkpoint_callback.best_model_path)
-        final_model_checkpoint.rename(
-            config.model.model_dir / f"{config.model.model_name}.ckpt"
-        )
 
     if not config.evaluate:
         console_logger.info("Not evaluating model, exiting...")
@@ -129,6 +127,7 @@ def main(config: Config):
         report = classification_report(
             flattened_targets,
             flattened_predictions,
+            digits=4,
             labels=list(label2idx.values()),
             target_names=list(label2idx.keys()),
             zero_division=0,
@@ -139,6 +138,7 @@ def main(config: Config):
             labels=list(label2idx.values()),
             display_labels=list(label2idx.keys()),
             xticks_rotation="vertical",
+            normalize="true"
         )
         output_dir = config.model.model_dir / config.model.model_name
         output_dir.mkdir(exist_ok=True, parents=True)
@@ -150,9 +150,10 @@ def main(config: Config):
         conf_matrix_plot.figure_.savefig(output_dir / "confusion_matrix.png", dpi=700)
 
         # Save files to W&B
-        wandb.save(str(final_model_checkpoint), policy="now")  # type: ignore
-        wandb.save(str(output_dir / "classification_report.txt"), policy="now")  # type: ignore
-        wandb.save(str(output_dir / "confusion_matrix.png"), policy="now")  # type: ignore
+        if config.fit:
+            wandb.save(str(final_model_checkpoint), policy="now")  # type: ignore
+            wandb.save(str(output_dir / "classification_report.txt"), policy="now")  # type: ignore
+            wandb.save(str(output_dir / "confusion_matrix.png"), policy="now")  # type: ignore
 
 
 if __name__ == "__main__":
