@@ -5,6 +5,4 @@ workerPoolSpecs:
     acceleratorCount: 1
   replicaCount: 1
   containerSpec:
-    imageUri: eu.gcr.io/mlcompute-325917/pos-tagger
-    args:
-    - trainer.max_epochs=1
+    imageUri: eu.gcr.io/mlcompute-325917/pos-tagger:training

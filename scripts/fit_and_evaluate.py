@@ -3,6 +3,7 @@ from pathlib import Path
 
 import hydra
 import pytorch_lightning as pl
+import wandb
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 from sklearn.metrics import ConfusionMatrixDisplay, classification_report
@@ -32,6 +33,14 @@ def main(config: Config):
             raise ValueError(
                 f"Must specify a valid name of a model in directory {config.model.model_dir}"
             )
+        else:
+            final_model_dir = config.model.model_dir / config.model.model_name
+            final_model_checkpoint = next(
+                possible_checkpoint
+                for possible_checkpoint in final_model_dir.iterdir()
+                if possible_checkpoint.suffix == ".ckpt"
+            )
+
     else:
         console_logger.info("Started fitting of model...")
 
@@ -52,23 +61,33 @@ def main(config: Config):
 
         # Load model, callbacks, logger and trainer
         model = PosModel(config=config)
-        logger = WandbLogger(
-            project="pos-tagger", log_model="best", save_dir=str(config.wandb_dir)
-        )
-        experiment_name = logger.experiment.name
-        logger.watch(model, log="all")
-        config.model.model_name = experiment_name
+        if config.enable_wandb:
+            logger = WandbLogger(
+                project="pos-tagger",
+                log_model="best",
+                save_dir=str(config.wandb_dir),
+            )
+            experiment_name = logger.experiment.name
+            logger.watch(model, log="all")
+        else:
+            experiment_name = None
+        config.model.model_name = experiment_name if experiment_name else "local_run"
         checkpoint_callback = ModelCheckpoint(
-            dirpath=config.model.model_dir,
+            dirpath=config.model.model_dir / config.model.model_name,
             monitor="val_loss",
             mode="min",
             save_weights_only=True,
+            save_top_k=1,
         )
-        early_stopping = EarlyStopping(monitor="val_loss", mode="min", patience=0)
-        trainer = pl.Trainer(
-            **config.trainer,  # type: ignore
+        early_stopping = EarlyStopping(
+            monitor="val_loss",
+            mode="min",
+            patience=0,
+        )
+        trainer = pl.Trainer(  # type: ignore
+            **config.trainer,
             callbacks=[checkpoint_callback, early_stopping],
-            logger=logger,
+            logger=logger if config.enable_wandb else False,
         )
 
         # Start fitting
@@ -96,32 +115,44 @@ def main(config: Config):
             model,
             dataloaders=test_dataloader,
             return_predictions=True,
-            ckpt_path=str(config.model.model_dir / config.model.model_name),  # type: ignore
+            ckpt_path=str(final_model_checkpoint),  # type: ignore
         )
 
         flattened_predictions = []
         flattened_targets = []
         for prediction_batch in batched_predictions:  # type: ignore
-            for ids, tags in prediction_batch:
+            for idx, tags in prediction_batch:
                 flattened_predictions += tags
-                flattened_targets += [
-                    test_dataset[idx][0].cpu().tolist() for idx in ids
-                ]
+                full_targets = test_dataset[idx][-1]
+                flattened_targets += full_targets[full_targets != -100].cpu().tolist()
 
         report = classification_report(
             flattened_targets,
             flattened_predictions,
+            labels=list(label2idx.values()),
             target_names=list(label2idx.keys()),
+            zero_division=0,
         )
         conf_matrix_plot = ConfusionMatrixDisplay.from_predictions(
             flattened_targets,
             flattened_predictions,
             labels=list(label2idx.values()),
             display_labels=list(label2idx.keys()),
+            xticks_rotation="vertical",
         )
-        with open(config.wandb_dir / "classification_report.txt", "w+") as f:
+        output_dir = config.model.model_dir / config.model.model_name
+        output_dir.mkdir(exist_ok=True, parents=True)
+        with open(
+            output_dir / "classification_report.txt",
+            "w+",
+        ) as f:
             f.write(report)
-        conf_matrix_plot.figure_.savefig(config.wandb_dir / "confusion_matrix.png")
+        conf_matrix_plot.figure_.savefig(output_dir / "confusion_matrix.png", dpi=700)
+
+        # Save files to W&B
+        wandb.save(str(final_model_checkpoint), policy="now")  # type: ignore
+        wandb.save(str(output_dir / "classification_report.txt"), policy="now")  # type: ignore
+        wandb.save(str(output_dir / "confusion_matrix.png"), policy="now")  # type: ignore
 
 
 if __name__ == "__main__":

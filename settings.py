@@ -53,3 +53,4 @@ class Config:
     evaluate: bool = True
     num_workers: int = 4
     wandb_dir: Path = Path("wandb")
+    enable_wandb: bool = True
