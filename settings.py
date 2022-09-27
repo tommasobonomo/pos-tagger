@@ -19,7 +19,8 @@ class SplitType(str, Enum):
 
 @dataclass
 class ModelConfig:
-    # Model configs
+    """Model config. Has fields that are custom and used to configure the model and its trianing, hopefully they should be self-explanatory."""
+
     transformer_model: str = "distilbert-base-uncased"
     learning_rate: float = 1e-5
     batch_size: int = 32
@@ -30,7 +31,10 @@ class ModelConfig:
 
 @dataclass
 class TrainerConfig:
-    # Trainer config
+    """
+    Trainer config. Will be deconstructed as arguments to initialise a `pytorch_lightning.Trainer`, so one should take care not to add fields that are not compatible with the `Trainer`'s initalisation arguments.
+    """
+
     accelerator: str = "auto"
     fast_dev_run: bool = False
     max_epochs: int = 10
@@ -38,7 +42,10 @@ class TrainerConfig:
 
 @dataclass
 class Config:
-    # Data configs
+    """
+    Root config class. Holds both `ModelConfig` and `TrainerConfig` as fields. The rest of the fields concern how the script should behave (fit and train, only fit, etc.) and where the data is saved and should be loaded from (`split_paths`).
+    """
+
     split_paths: Dict[SplitType, Path] = field(
         default_factory=lambda: {
             SplitType.train: data_dir / f"{SplitType.train}{extension}",
