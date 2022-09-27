@@ -18,6 +18,7 @@ Sentence = List[Row]
 
 
 def get_remote_files_urls() -> Tuple[Tuple[str, str], Tuple[str, str], Tuple[str, str]]:
+    """Hardcoded URLs for the UD_English-EWT POS data. Will return tuples consisting of split name and URL."""
     BASE_PATH = "https://raw.githubusercontent.com/UniversalDependencies/UD_English-EWT/master/en_ewt-ud-{placeholder}.conllu"
     return (
         ("train", BASE_PATH.format(placeholder="train")),
@@ -27,6 +28,10 @@ def get_remote_files_urls() -> Tuple[Tuple[str, str], Tuple[str, str], Tuple[str
 
 
 def parse_conllu(full_text: str) -> List[Sentence]:
+    """
+    Parse the CoNLL-U format to the format used in this repository, i.e. a word-tag pair per row.
+    The parsing follows hard-coded rules that are adapted to the CoNNL-U format.
+    """
     lines = full_text.splitlines()
     parsed_sentences = []
     sentence = []
@@ -55,6 +60,7 @@ def parse_conllu(full_text: str) -> List[Sentence]:
 
 
 def save_sentences_to_file(sentences: List[Sentence], output_path: Path):
+    """Simple utility function to save parsed sentences with the corresponding tag to file."""
     with open(output_path, "w+") as f:
         for sentence in sentences:
             for word, tag in sentence:
@@ -63,6 +69,8 @@ def save_sentences_to_file(sentences: List[Sentence], output_path: Path):
 
 
 def main():
+    """Main function of the script, imperative-style."""
+
     # Define file paths
     file_paths = [data_dir / f"{split}{extension}" for split in SPLITS]
 
