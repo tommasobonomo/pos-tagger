@@ -23,6 +23,11 @@ config_store.store(name="config", node=Config)
 
 @hydra.main(version_base=None, config_name="config")
 def main(config: Config):
+    """
+    Main function of the script. Parameters can be passed through modification of the default Config object
+    using the Hydra library.
+    """
+
     console_logger.info("Starting fit and evaluate script...")
 
     if not config.fit:
@@ -35,6 +40,7 @@ def main(config: Config):
             )
         else:
             final_model_dir = config.model.model_dir / config.model.model_name
+            # There should be a single `.ckpt` file in the model directory, so take the first one that is found
             final_model_checkpoint = next(
                 possible_checkpoint
                 for possible_checkpoint in final_model_dir.iterdir()
@@ -120,10 +126,17 @@ def main(config: Config):
         flattened_targets = []
         for prediction_batch in batched_predictions:  # type: ignore
             for idx, tags in prediction_batch:
+                # The tags returned by the model are already aligned with the input word separation, so we can directly
+                # add them to the flattened list of predictions
                 flattened_predictions += tags
+                # We retrieve the targets from the index of the test dataset that is passed through the model. The dataset
+                # already tokenizes the inputs and aligns the targets so we must recover the original targets, which are
+                # the elements different from -100, before adding them to the flattened targets.
                 full_targets = test_dataset[idx][-1]
                 flattened_targets += full_targets[full_targets != -100].cpu().tolist()
 
+        # Generate the classic scikit-learn classification report, which measures precision, recall and F1-score for all
+        # target classes, together with the macro and weighted average.
         report = classification_report(
             flattened_targets,
             flattened_predictions,
@@ -132,20 +145,19 @@ def main(config: Config):
             target_names=list(label2idx.keys()),
             zero_division=0,
         )
+        # Generates the matplotlib plot of a confusion matrix useful to visualise the overall performance across classes.
         conf_matrix_plot = ConfusionMatrixDisplay.from_predictions(
             flattened_targets,
             flattened_predictions,
             labels=list(label2idx.values()),
             display_labels=list(label2idx.keys()),
             xticks_rotation="vertical",
-            normalize="true"
+            normalize="true",
         )
+        # Build output directory and save classification report as well as confusion matrix
         output_dir = config.model.model_dir / config.model.model_name
         output_dir.mkdir(exist_ok=True, parents=True)
-        with open(
-            output_dir / "classification_report.txt",
-            "w+",
-        ) as f:
+        with open(output_dir / "classification_report.txt", "w+") as f:
             f.write(report)
         conf_matrix_plot.figure_.savefig(output_dir / "confusion_matrix.png", dpi=700)
 
